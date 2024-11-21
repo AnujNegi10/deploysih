@@ -1,4 +1,6 @@
 import streamlit as st
+from flask import Flask, request, jsonify
+
 import numpy as np
 import pandas as pd
 from tensorflow.keras.models import load_model
@@ -46,12 +48,35 @@ def predict_news(news):
     sentiment = 'DisasterRelated' if prediction > 0.5 else 'Not Related'
     return sentiment, prediction
 
+# flask app 
+app = Flask(__name__)
 
-if st.button("Predict"):
-    if user_input:
+@app.route("/" )
+def Hello():
+    return jsonify({'title': 'Fucking server is started'})
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    try:
+        # Get the input text from the request
+        input_data = request.json
+        print(input_data)
+        text = input_data.get('text')
+        print(text)
+        if not text:
+            return jsonify({'error': 'No text provided'}), 400
+
         result, score = predict_news(user_input)
-        st.write(f"**Result:** {result}")
-        st.write(f"**Confidence Score:** {score:.2f}")
-    else:
-        st.write("Please enter some text to predict.")
+        print(f"**Result:** {result}")
+        print(f"**Confidence Score:** {score:.2f}")
 
+        return jsonify({
+            "score": float(score),  # Ensure the score is a native float
+            "result": result         # Result should be a string already
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(port=3000 ,debug=True)
